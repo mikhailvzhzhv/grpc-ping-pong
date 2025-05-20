@@ -4,9 +4,10 @@ A demonstration of gRPC for inter-service communication, implementing a simple p
 
 # Protocol Rules
 Send any message starting with "ping" → returns "pong" response
+
 Other messages → returns error
 
-# api
+# API
 POST /pingpong
 ```
 {
