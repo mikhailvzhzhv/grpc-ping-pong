@@ -1,28 +1,37 @@
 package main
 
 import (
-	"context"
-	"fmt"
 	"log"
-	"os"
+
+	"github.com/gofiber/fiber/v3"
+	fiber_app "github.com/mikhailvzhzhv/grpc-ping-pong/ping_service/internal/app/fiber"
+	"github.com/mikhailvzhzhv/grpc-ping-pong/ping_service/internal/clients/grpc"
+	"github.com/mikhailvzhzhv/grpc-ping-pong/ping_service/internal/config"
+	pingpong_handler "github.com/mikhailvzhzhv/grpc-ping-pong/ping_service/internal/handlers/pingpong"
+	"github.com/mikhailvzhzhv/grpc-ping-pong/ping_service/internal/routes"
+	pingpong_service "github.com/mikhailvzhzhv/grpc-ping-pong/ping_service/internal/service/pingpong"
 )
 
 func main() {
-	ctx := context.Background()
-	target := fmt.Sprintf("%s:%s", os.Getenv("HOST"), os.Getenv("PORT"))
-
-	conn, err := grpc.NewClient(target)
+	conf, err := config.Load()
 	if err != nil {
-		log.Fatalf("cannot create new client: %v", err)
+		log.Fatalf("config load: %v", err)
 	}
 
-	client := pingpong.NewPingPongerClient(conn)
-	req := pingpong.PingRequest{Message: "ping"}
-
-	res, err := client.PingPong(ctx, &req)
+	pingpongClient, err := grpc.NewPingPongClient(conf.GRPC_HOST, conf.GRPC_PORT)
 	if err != nil {
-		log.Fatalf("ping error: %v", err)
+		log.Fatalf("pingpong grpc client: %v", err)
 	}
 
-	fmt.Printf("response: %s", res.GetMessage())
+	pingpongService := pingpong_service.New(pingpongClient)
+	pingpongHandler := pingpong_handler.New(pingpongService)
+
+	fiberApp := fiber.New()
+	routes.NewPingPongRouter(fiberApp, pingpongHandler)
+
+	app := fiber_app.New(fiberApp, conf.HTTP_PORT)
+
+	if err = app.Run(); err != nil {
+		log.Fatalf("run app: %v", err)
+	}
 }

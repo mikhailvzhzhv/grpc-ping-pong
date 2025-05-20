@@ -1,0 +1,19 @@
+services:
+  
+  ping:
+    container_name: ping
+    build: ./ping_service
+    depends_on:
+      - pong
+    ports:
+      - "8080:8080"
+    environment:
+      HTTP_PORT: 8080
+      GRPC_PORT: 7000
+      GRPC_HOST: "pong"
+
+  pong:
+    container_name: pong
+    build: ./pong_service
+    environment:
+      PORT: 7000
